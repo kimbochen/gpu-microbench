@@ -5,7 +5,7 @@ GENCODE_SM80 := -gencode=arch=compute_80,code=\"sm_80,compute_80\"
 GENCODE_SM89 := -gencode=arch=compute_89,code=\"sm_89,compute_89\"
 GENCODE_SM90 := -gencode=arch=compute_90,code=\"sm_90,compute_90\"
 
-CUOPTS = $(GENCODE_SM80) $(GENCODE_SM89) $(GENCODE_SM90) 
+CUOPTS = $(GENCODE_SM90)
 
 
 
@@ -13,6 +13,7 @@ CC := nvcc
 
 INCLUDE := 
 LIB := 
+ARRAY_SIZE :=
 
 SRC = mem_lat.cu
 
@@ -21,7 +22,7 @@ EXE = mem_lat
 NVCC_FLGAS = #-Xptxas -dlcm=cv -Xptxas -dscm=wt
 
 release:
-	$(CC) $(NVCC_FLGAS) $(CUOPTS) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(LIB) -lcudart
+	$(CC) $(NVCC_FLGAS) $(CUOPTS) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(LIB) -DARRAY_SIZE=$(ARRAY_SIZE) -lcudart
 
 run:
 	./$(EXE)

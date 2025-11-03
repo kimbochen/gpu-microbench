@@ -13,8 +13,15 @@
 #define THREADS_NUM 1 // HERE, we launch four threads, to ensure that one request is equal to DRAM trascation, 4 thread * 8 bytes = 32 bytes (= min DRAM trascation)
 #define ITERS 8192			
 #define STRIDE 32 // bytes
-#define ARRAY_SIZE (8*1024*128) //1048576 * 8 = 8 MB ,2621440 * 8 = 20 MB//(104857600 4090) (52428800 A100) (62914560 H800)  //pointer-chasing array size in 64-bit. total array size is 7 MB which larger than L2 cache size (6 MB in Volta) to avoid l2 cache resident from the copy engine
-#define BLOCKS 114			//(128 4090) (108 A100) (114 H800)
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE (8*1024*128)
+#endif
+// 1048576 * 8 = 8 MB ,2621440 * 8 = 20 MB
+// (104857600 4090) (52428800 A100) (62914560 H800) (62914560 H200)
+// pointer-chasing array size in 64-bit. total array size is 7 MB which larger than L2 cache size (6 MB in Volta) to avoid l2 cache resident from the copy engine
+
+#define BLOCKS 132			//(128 4090) (108 A100) (114 H800) (132 H200)
 #define THREADS_PER_BLOCK 1024
 #define TOTAL_THREADS BLOCKS *THREADS_PER_BLOCK
 
@@ -158,6 +165,7 @@ int main(int argc, char **argv)
 	gpuErrchk(cudaMemcpy(dsink, fakeArray_g, THREADS_NUM * sizeof(uint64_t), cudaMemcpyDeviceToHost));
 
 #ifndef FINE_GRAINED
+    printf("Chain data volume = %d B = %d KB = %d MB \n", ARRAY_SIZE*8, ARRAY_SIZE*8/1024, ARRAY_SIZE*8/1048576);
 	printf("Mem latency = %12.4f cycles \n", (float)(stopClk[0] - startClk[0]) / (float)(ITERS));
 	printf("Total Clk number = %u \n", stopClk[0] - startClk[0]);
 #endif
