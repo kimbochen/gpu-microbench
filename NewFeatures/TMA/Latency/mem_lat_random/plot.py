@@ -37,11 +37,11 @@ for name, config in configs.items():
 
     ax.plot(x_vals, y_vals, **config, **global_config)
 
-ax.set_xlabel('Chain Data Volume (KiB)')
+ax.set_xlabel('Chain Data Volume')
 ax.set_ylabel('Latency (Cycles)')
 ax.set_xscale('log', base=2)
 
-ax.set_xticks([16, 128, 256, 6*1024, 20*1024, 40*1024, 128*1024])
+ax.set_xticks([16, 64, 256, 1024, 4*1024, 16*1024, 32*1024, 64*1024, 128*1024, 256*1024])
 formatter = FuncFormatter(lambda x, _: f'{x:d} KiB' if x < 1024 else f'{(x // 1024):d} MiB')
 ax.get_xaxis().set_major_formatter(formatter)
 fig.autofmt_xdate()
