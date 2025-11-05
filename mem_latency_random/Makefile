@@ -9,10 +9,10 @@ ld_global: ld_global.cu gpu-clock.cuh
 ld_global.ptx: ld_global.cu gpu-clock.cuh
 	nvcc $(NVCCFLAGS) $(INCLUDES) -ptx -o $@ $< $(LDFLAGS)
 
-tma_1d: tma_1d.cu gpu-clock.cuh
+tma: tma.cu gpu-clock.cuh
 	nvcc $(NVCCFLAGS) $(INCLUDES) -o $@ $< $(LDFLAGS)
 
-tma_1d.ptx: tma_1d.cu gpu-clock.cuh
+tma.ptx: tma.cu gpu-clock.cuh
 	nvcc $(NVCCFLAGS) $(INCLUDES) -ptx -o $@ $< $(LDFLAGS)
 
 cp_async: cp_async.cu gpu-clock.cuh
