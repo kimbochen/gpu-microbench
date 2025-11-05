@@ -12,9 +12,12 @@ plt.rcParams.update({'font.size': 17})
 
 order = [
     "a100_pcie",
-    "rtx4090",
-    "h800_pcie",
-    "h800_tma",
+    # "rtx4090",
+    # "h800_pcie",
+    # "h800_tma",
+    "h200",
+    "h200_tma",
+    "b200_tma"
 ]
 
 
@@ -28,8 +31,19 @@ name = {
     "a100_pcie" : "A100",
     "h800_pcie" : "H800",
     "h800_tma" : "H800 (by TMA)",
+    "h200": "H200",
+    "h200_tma" : "H200 (by TMA)",
+    "b200_tma": "B200 (by TMA)",
     "rtx4090" : "RTX4090"
     }
+
+color = {
+    "a100_pcie": "blue",
+    "h200": "green",
+    "h200_tma": "red",
+    "b200": "yellow",
+    "b200_tma": "black"
+}
 
 lineStyle = {"linewidth": 1.5, "alpha": 1, "markersize": 4, "marker": "."}
 
@@ -53,7 +67,7 @@ for filename in sorted(os.listdir("."), key=lambda f1: getOrderNumber(f1)):
             bw,
             label=name[filename[:-4]],
             markeredgewidth=0,
-            color="C" + str(getOrderNumber(filename)),
+            color=color[filename.split('.')[0]],
             **lineStyle
         )
 
@@ -73,12 +87,12 @@ ax.get_xaxis().set_major_formatter(formatter)
 
 ax.set_xticks([16, 128, 256, 6 * 1024, 20 * 1024, 40 * 1024, 128 * 1024])
 
-ax.set_ylim([0, 900])
+ax.set_ylim([0, 1000])
 
 fig.autofmt_xdate()
 ax.legend()
 ax.set_ylim([0, ax.get_ylim()[1]])
 fig.tight_layout()
-fig.savefig("latency_plot.pdf")
+fig.savefig("latency_plot.png")
 
 plt.show()

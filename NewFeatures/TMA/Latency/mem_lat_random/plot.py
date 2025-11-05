@@ -6,9 +6,9 @@ from matplotlib.ticker import FuncFormatter
 configs = {
     'h200_ldg': { 'label': 'H200 (ldg)', 'color': '#98FB98' },
 	'h200_cpa': { 'label': 'H200 (Async Copy)', 'color': '#3CB371' },
-    'h200_tma': { 'label': 'H200 (TMA 1D)', 'color': '#006400' },
+    'h200_tma': { 'label': 'H200 (TMA)', 'color': '#006400' },
 	'b200_cpa': { 'label': 'B200 (Async Copy)', 'color': 'dimgray' },
-	'b200_tma': { 'label': 'B200 (TMA 1D)', 'color': 'black' },
+	'b200_tma': { 'label': 'B200 (TMA)', 'color': 'black' },
 }
 global_config = { 'marker': '.', 'linewidth': 2.5, 'markersize': 5 }
 

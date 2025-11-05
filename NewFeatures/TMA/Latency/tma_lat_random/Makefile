@@ -9,8 +9,11 @@ PREFIX		:= .
 N 			:= 1
 
 
-$(PREFIX)/cuda-$(NAME): main.cu Makefile gpu-clock.cuh
+$(PREFIX)/cuda-$(NAME): ld_global.cu Makefile gpu-clock.cuh
 	$(NVCC) $(NVCCFLAGS) $(INCLUDES) -o $@ $< $(LDFLAGS)
+
+cuda-$(NAME).ptx: ld_global.cu Makefile gpu-clock.cuh
+	$(NVCC) $(NVCCFLAGS) $(INCLUDES) -ptx -o $@ $< $(LDFLAGS)
 
 main.hip: main.cu
 	hipify-perl main.cu > main.hip

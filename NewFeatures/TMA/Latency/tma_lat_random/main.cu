@@ -9,6 +9,9 @@
 #include <sys/time.h>
 #include <cuda/barrier>
 #include <nvml.h>
+#include <unistd.h>
+
+
 __global__ void powerKernel(double *A, int iters)
 {
     int tidx = threadIdx.x + blockIdx.x * blockDim.x;
