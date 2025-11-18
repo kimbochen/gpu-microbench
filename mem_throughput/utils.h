@@ -2,6 +2,14 @@
 #include <cuda_runtime.h>
 #include <cstdio>
 
+constexpr int32_t NUM_SMS = 148;                              // B200 has 148 SMs
+constexpr int32_t L2_SIZE = 132644864;                        // B200 L2 cache is 126.5 MiB
+constexpr size_t MAX_DATA_VOLUME = 2LL * 1024 * 1024 * 1024;  // 2 GB
+
+inline size_t minMultiple(size_t a, size_t b) {
+    return (a / b) * b;
+}
+#define MIN_MULTIPLE(a, b) minMultiple((a), (b))
 
 inline void checkCuda(cudaError_t status, const char *fn, const char *file, int32_t line) {
     if (status != cudaSuccess) {
@@ -10,8 +18,3 @@ inline void checkCuda(cudaError_t status, const char *fn, const char *file, int3
     }
 }
 #define CHECK_CUDA(fn) checkCuda((fn), #fn, __FILE__, __LINE__)
-
-inline size_t minMultiple(size_t a, size_t b) {
-    return (a / b) * b;
-}
-#define MIN_MULTIPLE(a, b) minMultiple((a), (b))
