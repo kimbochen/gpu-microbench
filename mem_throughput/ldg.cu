@@ -5,7 +5,7 @@
 #include "utils.h"
 
 constexpr int32_t THREADS_PER_BLOCK = 1024;
-constexpr int32_t UNROLL_FACTOR = 2;
+constexpr int32_t UNROLL_FACTOR = 4;
 
 using load_t = float4;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
@@ -26,8 +26,17 @@ __global__ void LDGSTGKernel(float *src, float *dst, size_t N) {
 
         #pragma unroll
         for (int32_t j = 0; j < UNROLL_FACTOR; j++) {
-            reinterpret_cast<load_t*>(dst)[i + stride * j] = buff[j];
+            #pragma unroll
+            for (int32_t k = 0; k < VECTOR_WIDTH; k++) {
+                if (reinterpret_cast<float*>(buff + j)[k] == 0.0f) {
+                    printf("Dummy access.");
+                }
+            }
         }
+        // #pragma unroll
+        // for (int32_t j = 0; j < UNROLL_FACTOR; j++) {
+        //     reinterpret_cast<load_t*>(dst)[i + stride * j] = buff[j];
+        // }
     }
 }
 
