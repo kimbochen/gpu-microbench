@@ -37,7 +37,7 @@ __global__ void BulkAsyncCopyKernel(float *arr, size_t N) {
         int32_t offset = base + i * stride;
         if (threadIdx.x == 0) {
             cg::invoke_one(cg::coalesced_threads(), [&] () {
-                ptx::cp_async_bulk(ptx::space_shared, ptx::space_global, buff, arr + offset, static_cast<uint32_t>(LOAD_SIZE), &bar[slot]);
+                ptx::cp_async_bulk(ptx::space_shared, ptx::space_global, buff[slot], arr + offset, static_cast<uint32_t>(LOAD_SIZE), &bar[slot]);
                 ptx::mbarrier_arrive_expect_tx(ptx::sem_release, ptx::scope_cta, ptx::space_shared, &bar[slot], static_cast<uint32_t>(LOAD_SIZE));
             });
         }
@@ -46,7 +46,6 @@ __global__ void BulkAsyncCopyKernel(float *arr, size_t N) {
     for (int32_t i = num_iters; i < num_iters + NUM_STAGES; i++) {
         int32_t slot = i % NUM_STAGES;
         uint32_t parity = (i % (NUM_STAGES * 2)) < NUM_STAGES ? 1 : 0;
-
         while (!ptx::mbarrier_try_wait_parity(&bar[slot], parity));
     }
 }
@@ -61,7 +60,7 @@ void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
 
     float *arr, *d_arr;
     int32_t num_blks = NUM_SMS * blk_factor;
-    size_t arr_size = MIN_MULTIPLE(MAX_DATA_VOLUME, (num_blks * LOAD_SIZE));
+    size_t arr_size = MIN_MULTIPLE(MAX_DATA_VOLUME, (num_blks * LOAD_SIZE * NUM_STAGES));
     size_t N = arr_size / sizeof(float);
 
     arr = (float*) malloc(arr_size);
