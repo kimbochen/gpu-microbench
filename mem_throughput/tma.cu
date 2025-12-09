@@ -8,9 +8,9 @@
 namespace cg = cooperative_groups;
 namespace ptx = cuda::ptx;
 
-constexpr size_t LOAD_SIZE = 8192;
-constexpr size_t ELEMS_PER_LOAD = LOAD_SIZE / sizeof(float);
 constexpr int32_t NUM_STAGES = 4;
+constexpr size_t LOAD_SIZE = 12 * 1024 - NUM_STAGES * sizeof(uint64_t);
+constexpr size_t ELEMS_PER_LOAD = LOAD_SIZE / sizeof(float);
 
 
 __global__ void BulkAsyncCopyKernel(float *arr, size_t N) {
