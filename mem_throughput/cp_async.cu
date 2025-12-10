@@ -4,11 +4,10 @@
 #include <cuda_pipeline.h>
 #include "utils.h"
 
-constexpr int32_t THREADS_PER_BLOCK = 1024;
-
 using load_t = float4;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
 constexpr int32_t LOAD_SIZE = sizeof(load_t);
+constexpr int32_t THREADS_PER_BLOCK = 1024;
 
 
 __global__ void asyncCopyKernel(float *arr, size_t N) {
@@ -26,57 +25,37 @@ __global__ void asyncCopyKernel(float *arr, size_t N) {
 }
 
 
-void benchAsyncCopyThroughput(int32_t num_blks_factor) {
-    void *flush_arr;
-    CHECK_CUDA(cudaMalloc(&flush_arr, L2_SIZE));
-    CHECK_CUDA(cudaMemset(flush_arr, 0xA5, L2_SIZE));
-    CHECK_CUDA(cudaDeviceSynchronize());
-    cudaFree(flush_arr);
-
+void benchAsyncCopyThroughput(int32_t blk_factor) {
     float *arr, *d_arr;
-    int32_t num_blks = NUM_SMS * num_blks_factor;
-    size_t arr_size = MIN_MULTIPLE(MAX_DATA_VOLUME, (num_blks * THREADS_PER_BLOCK * LOAD_SIZE));
+    int32_t num_blks = NUM_SMS * blk_factor;
+    size_t arr_size = minMultiple(MAX_DATA_VOLUME, (num_blks * THREADS_PER_BLOCK * LOAD_SIZE));
     size_t N = arr_size / sizeof(float);
 
     arr = (float*) malloc(arr_size);
-    srand((uint32_t) num_blks);
+    srand((uint32_t) num_blks + LOAD_SIZE);
     for (size_t i = 0; i < N; i++) {
         arr[i] = rand();
     }
-    CHECK_CUDA(cudaMalloc(&d_arr, arr_size));
-    CHECK_CUDA(cudaMemcpy(d_arr, arr, arr_size, cudaMemcpyHostToDevice));
-    CHECK_CUDA(cudaDeviceSynchronize());
-
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start);
-    asyncCopyKernel<<<num_blks, THREADS_PER_BLOCK>>>(d_arr, N);
-    CHECK_CUDA(cudaDeviceSynchronize());
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    CHECK_CUDA(cudaPeekAtLastError());
+    cudaMalloc(&d_arr, arr_size);
+    cudaMemcpy(d_arr, arr, arr_size, cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
 
     float t_elapsed;
-    cudaEventElapsedTime(&t_elapsed, start, stop);
-    printf("%d, %d, %lu, %.5f\n", num_blks_factor, LOAD_SIZE, arr_size, t_elapsed);
+    DO_BENCH(t_elapsed, asyncCopyKernel<<<num_blks, THREADS_PER_BLOCK>>>(d_arr, N));
+    printf("blk_factor=%d, load_size=%d, arr_size=%lu, t_elapsed=%.5f\n", blk_factor, LOAD_SIZE, arr_size, t_elapsed);
 
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-    CHECK_CUDA(cudaFree(d_arr));
+    cudaFree(d_arr);
     free(arr);
 }
 
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        puts("Usage: ./cp_async [DEVICE_ID] [NUM_BLKS_FACTOR]");
+    if (argc != 2) {
+        puts("Usage: ./cp_async [BLK_FACTOR]");
         return 1;
     }
 
-    cudaSetDevice(atoi(argv[1]));
-    benchAsyncCopyThroughput(atoi(argv[2]));
+    benchAsyncCopyThroughput(atoi(argv[1]));
 
     return 0;
 }
