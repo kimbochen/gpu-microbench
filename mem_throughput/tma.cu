@@ -9,7 +9,7 @@ namespace cg = cooperative_groups;
 namespace ptx = cuda::ptx;
 
 constexpr int32_t NUM_STAGES = 4;
-constexpr size_t LOAD_SIZE = 12 * 1024 - NUM_STAGES * sizeof(uint64_t);
+constexpr int32_t LOAD_SIZE = 12 * 1024 - NUM_STAGES * sizeof(uint64_t);
 constexpr size_t ELEMS_PER_LOAD = LOAD_SIZE / sizeof(float);
 
 
@@ -52,19 +52,13 @@ __global__ void BulkAsyncCopyKernel(float *arr, size_t N) {
 
 
 void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
-    void *flush_arr;
-    cudaMalloc(&flush_arr, L2_SIZE);
-    cudaMemset(flush_arr, 0xA5, L2_SIZE);
-    cudaDeviceSynchronize();
-    cudaFree(flush_arr);
-
     float *arr, *d_arr;
     int32_t num_blks = NUM_SMS * blk_factor;
-    size_t arr_size = MIN_MULTIPLE(MAX_DATA_VOLUME, (num_blks * LOAD_SIZE * NUM_STAGES));
+    size_t arr_size = minMultiple(MAX_DATA_VOLUME, (num_blks * LOAD_SIZE * NUM_STAGES));
     size_t N = arr_size / sizeof(float);
 
     arr = (float*) malloc(arr_size);
-    srand((uint32_t) num_blks);
+    srand((uint32_t) NUM_STAGES * LOAD_SIZE);
     for (size_t i = 0; i < N; i++) {
         arr[i] = rand();
     }
@@ -72,23 +66,10 @@ void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
     cudaMemcpy(d_arr, arr, arr_size, cudaMemcpyHostToDevice);
     cudaDeviceSynchronize();
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start);
-    BulkAsyncCopyKernel<<<num_blks, 1>>>(d_arr, N);
-    cudaDeviceSynchronize();
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaPeekAtLastError();
-
     float t_elapsed;
-    cudaEventElapsedTime(&t_elapsed, start, stop);
-    printf("%d, %lu, %lu, %.5f\n", blk_factor, LOAD_SIZE, arr_size, t_elapsed);
+    DO_BENCH(t_elapsed, BulkAsyncCopyKernel<<<num_blks, 1>>>(d_arr, N));
+    printf("blk_factor=%d, load_size=%d, arr_size=%lu, t_elapsed=%.5f\n", blk_factor, LOAD_SIZE, arr_size, t_elapsed);
 
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
     cudaFree(d_arr);
     free(arr);
 }
@@ -96,11 +77,10 @@ void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        puts("Usage: ./tma [NUM_BLKS_FACTOR]");
+        puts("Usage: ./tma [BLK_FACTOR]");
         return 1;
     }
 
-    cudaSetDevice(0);
     benchBulkAsyncCopyThroughput(1);
 
     return 0;
