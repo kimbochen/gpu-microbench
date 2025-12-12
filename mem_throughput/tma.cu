@@ -5,6 +5,10 @@
 #include <cuda_runtime.h>
 #include "utils.h"
 
+/* Benchmark command
+ * sudo $(which ncu) --clock-control none --metrics dram__bytes_read.sum.per_second,sm__cycles_elapsed.avg,sm__sass_inst_executed_op_tma.sum,sm__sass_inst_executed_op_tma.sum.per_cycle_elapsed ./tma 1
+ */
+
 namespace cg = cooperative_groups;
 namespace ptx = cuda::ptx;
 

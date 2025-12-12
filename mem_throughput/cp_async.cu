@@ -4,6 +4,10 @@
 #include <cuda_pipeline.h>
 #include "utils.h"
 
+/* Benchmark command
+ * sudo $(which ncu) --clock-control none --metrics dram__bytes_read.sum.per_second,sm__cycles_elapsed.avg,sm__sass_inst_executed_op_ldgsts.sum,sm__sass_inst_executed_op_ldgsts.sum.per_cycle_elapsed ./cp_async
+ */
+
 using load_t = float;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
 constexpr int32_t LOAD_SIZE = sizeof(load_t);
