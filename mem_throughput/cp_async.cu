@@ -4,31 +4,42 @@
 #include <cuda_pipeline.h>
 #include "utils.h"
 
-using load_t = float4;  // [float, float2, float4]
+using load_t = float;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
 constexpr int32_t LOAD_SIZE = sizeof(load_t);
-constexpr int32_t THREADS_PER_BLOCK = 1024;
+
+constexpr int32_t CTAS_PER_SM = 1;
+constexpr int32_t NUM_STAGES = 5;
+constexpr int32_t THREADS_PER_BLOCK = 512;
 
 
 __global__ void asyncCopyKernel(float *arr, size_t N) {
-    __shared__ load_t buff[THREADS_PER_BLOCK];
+    __shared__ load_t buff[NUM_STAGES][THREADS_PER_BLOCK];
 
-    size_t tid = threadIdx.x;
-    size_t offset = blockDim.x * blockIdx.x + threadIdx.x;
-    size_t stride = gridDim.x * blockDim.x;
+    int32_t tid = threadIdx.x;
+    int32_t base = blockDim.x * blockIdx.x + threadIdx.x;
+    int32_t stride = NUM_STAGES * (gridDim.x * blockDim.x);
+    int32_t num_iters = ((N / VECTOR_WIDTH) - base) / stride;
 
-    for (size_t i = offset; i < N / VECTOR_WIDTH; i += stride) {
-        __pipeline_memcpy_async(buff + tid, arr + i * VECTOR_WIDTH, LOAD_SIZE);  // LDGSTS
-        __pipeline_commit();                                                     // LDGDEPBAR
-        __pipeline_wait_prior(0);                                                // DEPBAR.LE SB, 0
+
+    for (int32_t i = 0; i < num_iters; i++) {
+        __pipeline_wait_prior(NUM_STAGES - 1);
+
+        int32_t slot = i % NUM_STAGES;
+        int32_t offset = (base + stride * i) * VECTOR_WIDTH;
+
+        __pipeline_memcpy_async(buff[slot] + tid, arr + offset, LOAD_SIZE);  // LDGSTS
+        __pipeline_commit();                                                 // LDGDEPBAR
     }
+
+    __pipeline_wait_prior(NUM_STAGES - 1);  // DEPBAR.LE SB, NUM_STAGES-1
 }
 
 
 void benchAsyncCopyThroughput(int32_t blk_factor) {
     float *arr, *d_arr;
     int32_t num_blks = NUM_SMS * blk_factor;
-    size_t arr_size = minMultiple(MAX_DATA_VOLUME, (num_blks * THREADS_PER_BLOCK * LOAD_SIZE));
+    size_t arr_size = minMultiple(MAX_DATA_VOLUME, (num_blks * NUM_STAGES * THREADS_PER_BLOCK * LOAD_SIZE));
     size_t N = arr_size / sizeof(float);
 
     arr = (float*) malloc(arr_size);
@@ -50,12 +61,6 @@ void benchAsyncCopyThroughput(int32_t blk_factor) {
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        puts("Usage: ./cp_async [BLK_FACTOR]");
-        return 1;
-    }
-
-    benchAsyncCopyThroughput(atoi(argv[1]));
-
+    benchAsyncCopyThroughput(CTAS_PER_SM);
     return 0;
 }
