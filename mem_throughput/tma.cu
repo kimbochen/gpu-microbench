@@ -6,14 +6,15 @@
 #include "utils.h"
 
 /* Benchmark command
- * sudo $(which ncu) --clock-control none --metrics dram__bytes_read.sum.per_second,sm__cycles_elapsed.avg,sm__sass_inst_executed_op_tma.sum,sm__sass_inst_executed_op_tma.sum.per_cycle_elapsed ./tma 1
+ * sudo $(which ncu) --clock-control none --metrics dram__bytes_read.sum.per_second,sm__cycles_elapsed.avg,sm__sass_inst_executed_op_tma.sum,sm__sass_inst_executed_op_tma.sum.per_cycle_elapsed ./tma
  */
 
 namespace cg = cooperative_groups;
 namespace ptx = cuda::ptx;
 
-constexpr int32_t NUM_STAGES = 4;
-constexpr int32_t LOAD_SIZE = 12 * 1024 - NUM_STAGES * sizeof(uint64_t);
+constexpr int32_t CTAS_PER_SM = 1;
+constexpr int32_t NUM_STAGES = 1;
+constexpr int32_t LOAD_SIZE = 32768;
 constexpr size_t ELEMS_PER_LOAD = LOAD_SIZE / sizeof(float);
 
 
@@ -55,9 +56,9 @@ __global__ void BulkAsyncCopyKernel(float *arr, size_t N) {
 }
 
 
-void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
+void benchBulkAsyncCopyThroughput(int32_t ctas_per_sm) {
     float *arr, *d_arr;
-    int32_t num_blks = NUM_SMS * blk_factor;
+    int32_t num_blks = NUM_SMS * ctas_per_sm;
     size_t arr_size = minMultiple(MAX_DATA_VOLUME, (num_blks * LOAD_SIZE * NUM_STAGES));
     size_t N = arr_size / sizeof(float);
 
@@ -72,7 +73,7 @@ void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
 
     float t_elapsed;
     DO_BENCH(t_elapsed, BulkAsyncCopyKernel<<<num_blks, 1>>>(d_arr, N));
-    printf("blk_factor=%d, load_size=%d, arr_size=%lu, t_elapsed=%.5f\n", blk_factor, LOAD_SIZE, arr_size, t_elapsed);
+    printf("ctas_per_sm=%d, num_stages=%d, load_size=%d, t_elapsed=%.5f\n", ctas_per_sm, NUM_STAGES, LOAD_SIZE, t_elapsed);
 
     cudaFree(d_arr);
     free(arr);
@@ -80,12 +81,6 @@ void benchBulkAsyncCopyThroughput(int32_t blk_factor) {
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        puts("Usage: ./tma [BLK_FACTOR]");
-        return 1;
-    }
-
-    benchBulkAsyncCopyThroughput(1);
-
+    benchBulkAsyncCopyThroughput(CTAS_PER_SM);
     return 0;
 }

@@ -8,12 +8,12 @@
  * sudo $(which ncu) --clock-control none --metrics dram__bytes_read.sum.per_second,sm__cycles_elapsed.avg,sm__sass_inst_executed_op_ldgsts.sum,sm__sass_inst_executed_op_ldgsts.sum.per_cycle_elapsed ./cp_async
  */
 
-using load_t = float;  // [float, float2, float4]
+using load_t = float4;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
 constexpr int32_t LOAD_SIZE = sizeof(load_t);
 
-constexpr int32_t CTAS_PER_SM = 1;
-constexpr int32_t NUM_STAGES = 5;
+constexpr int32_t CTAS_PER_SM = 2;
+constexpr int32_t NUM_STAGES = 3;
 constexpr int32_t THREADS_PER_BLOCK = 512;
 
 
