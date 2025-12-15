@@ -1,12 +1,11 @@
-NVCCFLAGS   := -std=c++17 -gencode=arch=compute_100,code=\"sm_100,compute_100\" 
+NVCCFLAGS := -std=c++17 -gencode=arch=compute_100,code=\"sm_100,compute_100\"
 
-all: ldg cp_async tma
+# TMA 2D
+SMEM_WIDTH ?=
+SMEM_HEIGHT ?=
+DEFINES = -DSMEM_WIDTH=$(SMEM_WIDTH) -DSMEM_HEIGHT=$(SMEM_HEIGHT)
 
-ldg: ldg.cu utils.h
-	nvcc $(NVCCFLAGS) -o $@ $<
-
-ldg.ptx: ldg.cu utils.h
-	nvcc $(NVCCFLAGS) -ptx -o $@ $<
+all: cp_async tma
 
 cp_async: cp_async.cu utils.h
 	nvcc $(NVCCFLAGS) -o $@ $<
@@ -20,5 +19,11 @@ tma: tma.cu utils.h
 tma.ptx: tma.cu utils.h
 	nvcc $(NVCCFLAGS) -ptx -o $@ $<
 
+tma2d: tma2d.cu utils.h
+	nvcc $(NVCCFLAGS) $(DEFINES) -lcuda -o $@ $<
+
+tma2d.ptx: tma2d.cu utils.h
+	nvcc $(NVCCFLAGS) $(DEFINES) -lcuda -ptx -o $@ $<
+
 clean:
-	rm -f *.ptx ldg cp_async tma
+	rm -f *.ptx cp_async tma tma2d
