@@ -1,5 +1,11 @@
 NVCCFLAGS := -std=c++17 -gencode=arch=compute_100,code=\"sm_100,compute_100\"
 
+# LDGSTS
+CTAS_PER_SM ?= 1
+NUM_STAGES ?= 1
+THREADS_PER_BLOCK ?= 128
+LDGSTS_DEFINE = -DCTAS_PER_SM=$(CTAS_PER_SM) -DNUM_STAGES=$(NUM_STAGES) -DTHREADS_PER_BLOCK=$(THREADS_PER_BLOCK)
+
 # TMA 2D
 SMEM_WIDTH ?=
 SMEM_HEIGHT ?=
@@ -8,10 +14,10 @@ DEFINES = -DSMEM_WIDTH=$(SMEM_WIDTH) -DSMEM_HEIGHT=$(SMEM_HEIGHT)
 all: cp_async tma
 
 cp_async: cp_async.cu utils.h
-	nvcc $(NVCCFLAGS) -o $@ $<
+	nvcc $(NVCCFLAGS) $(LDGSTS_DEFINE) -o $@ $<
 
 cp_async.ptx: cp_async.cu utils.h
-	nvcc $(NVCCFLAGS) -ptx -o $@ $<
+	nvcc $(NVCCFLAGS) $(LDGSTS_DEFINE) -ptx -o $@ $<
 
 tma: tma.cu utils.h
 	nvcc $(NVCCFLAGS) -o $@ $<

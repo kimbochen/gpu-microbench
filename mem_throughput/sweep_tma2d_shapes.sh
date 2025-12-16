@@ -28,6 +28,16 @@ COMBINATIONS=(
     "128 48"
     "192 32"
     "256 24"
+    "32 256"
+    "64 128"
+    "128 64"
+    "256 32"
+    "40 256"
+    "64 160"
+    "80 128"
+    "128 80"
+    "160 64"
+    "256 40"
 )
 
 echo "SMEM_WIDTH,SMEM_HEIGHT,dram_read_TB_per_s" > "$OUTPUT_FILE"

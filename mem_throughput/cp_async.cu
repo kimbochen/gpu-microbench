@@ -12,9 +12,9 @@ using load_t = float4;  // [float, float2, float4]
 constexpr int32_t VECTOR_WIDTH = sizeof(load_t) / sizeof(float);
 constexpr int32_t LOAD_SIZE = sizeof(load_t);
 
-constexpr int32_t CTAS_PER_SM = 2;
-constexpr int32_t NUM_STAGES = 3;
-constexpr int32_t THREADS_PER_BLOCK = 512;
+// constexpr int32_t CTAS_PER_SM = 2;
+// constexpr int32_t NUM_STAGES = 3;
+// constexpr int32_t THREADS_PER_BLOCK = 512;
 
 
 __global__ void asyncCopyKernel(float *arr, size_t N) {
