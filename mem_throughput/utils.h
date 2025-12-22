@@ -9,6 +9,10 @@ inline size_t minMultiple(size_t a, size_t b) {
     return (a / b) * b;
 }
 
+inline size_t getDataVolume(size_t factor) {
+    return (MAX_DATA_VOLUME / factor) * factor;
+}
+
 #define DO_BENCH(t_elapsed, ...)                       \
     do {                                               \
         void *flush_arr;                               \

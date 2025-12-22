@@ -31,5 +31,11 @@ tma2d: tma2d.cu utils.h
 tma2d.ptx: tma2d.cu utils.h
 	nvcc $(NVCCFLAGS) $(DEFINES) -lcuda -ptx -o $@ $<
 
+dsmem_pair: dsmem_pair.cu utils.h
+	nvcc $(NVCCFLAGS) -o $@ $<
+
+dsmem_pair.ptx: dsmem_pair.cu utils.h
+	nvcc $(NVCCFLAGS) -ptx -o $@ $<
+
 clean:
 	rm -f *.ptx cp_async tma tma2d
