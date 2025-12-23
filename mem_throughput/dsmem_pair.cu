@@ -57,7 +57,7 @@ __device__ __forceinline__ float dsmem_load<float4>(const float4 *remote_buffer_
 
 
 __global__ __cluster_dims__(CLUSTER_SIZE, 1, 1)
-void distributedSharedMemory(float *data) {
+void distributedSharedMemoryPair(float *data) {
     extern __shared__ LOAD_T buffer[];
     const size_t N_buffer = SMEM_SIZE / LOAD_SIZE;
     cg::cluster_group cluster = cg::this_cluster();
@@ -110,7 +110,7 @@ void benchDistributedSharedMemoryPairThroughput() {
     config.attrs = attribute;
     config.numAttrs = 1;
 
-    cudaLaunchKernelEx(&config, distributedSharedMemory, d_data);
+    cudaLaunchKernelEx(&config, distributedSharedMemoryPair, d_data);
 
     cudaFree(d_data);
     free(data);
