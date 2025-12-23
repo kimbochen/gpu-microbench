@@ -11,6 +11,12 @@ SMEM_WIDTH ?=
 SMEM_HEIGHT ?=
 DEFINES = -DSMEM_WIDTH=$(SMEM_WIDTH) -DSMEM_HEIGHT=$(SMEM_HEIGHT)
 
+# DSMEM Pair
+CLUSTER_SIZE ?=
+THREADS_PER_CTA ?=
+LOAD_T ?=
+DSMEM_PAIR_DEFS = -DCLUSTER_SIZE=$(CLUSTER_SIZE) -DTHREADS_PER_CTA=$(THREADS_PER_CTA) -DLOAD_T=$(LOAD_T)
+
 all: cp_async tma
 
 cp_async: cp_async.cu utils.h
@@ -32,10 +38,10 @@ tma2d.ptx: tma2d.cu utils.h
 	nvcc $(NVCCFLAGS) $(DEFINES) -lcuda -ptx -o $@ $<
 
 dsmem_pair: dsmem_pair.cu utils.h
-	nvcc $(NVCCFLAGS) -o $@ $<
+	nvcc $(NVCCFLAGS) $(DSMEM_PAIR_DEFS) -o $@ $<
 
 dsmem_pair.ptx: dsmem_pair.cu utils.h
-	nvcc $(NVCCFLAGS) -ptx -o $@ $<
+	nvcc $(NVCCFLAGS) $(DSMEM_PAIR_DEFS) -ptx -o $@ $<
 
 clean:
-	rm -f *.ptx cp_async tma tma2d
+	rm -f *.ptx cp_async tma tma2d dsmem_pair

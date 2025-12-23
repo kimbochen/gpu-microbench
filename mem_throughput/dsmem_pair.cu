@@ -4,16 +4,17 @@
 #include <cuda.h>
 #include "utils.h"
 
-#define CLUSTER_SIZE 8
-#define THREADS_PER_CTA 256
-#define LOAD_T float4
-#define N_ITERS 1000000
+// #define CLUSTER_SIZE 8
+// #define THREADS_PER_CTA 1024
+// #define LOAD_T float4
+
+#define N_ITERS 1000
+#define SMEM_SIZE 32768  // Greater than 24 KiB to force 1 CTA per SM
 
 namespace cg = cooperative_groups;
-// constexpr uint32_t VECTOR_WIDTH = sizeof(LOAD_T) / sizeof(float);
 constexpr uint32_t LOAD_SIZE = sizeof(LOAD_T);
 
-// sudo $(which ncu) --metrics sm__sass_inst_executed_op_dshared_ld.sum.per_second ./dsmem_pair
+// sudo $(which ncu) --clock-control none --metrics sm__sass_inst_executed_op_dshared_ld.sum.per_second ./dsmem_pair
 
 template<typename T>
 __device__ __forceinline__ float dsmem_load(const T *remote_buffer);
@@ -58,35 +59,37 @@ __device__ __forceinline__ float dsmem_load<float4>(const float4 *remote_buffer_
 __global__ __cluster_dims__(CLUSTER_SIZE, 1, 1)
 void distributedSharedMemory(float *data) {
     extern __shared__ LOAD_T buffer[];
+    const size_t N_buffer = SMEM_SIZE / LOAD_SIZE;
     cg::cluster_group cluster = cg::this_cluster();
-    int32_t thread_rank = cg::this_grid().thread_rank();
-    float acc = 0.0f;
 
-    buffer[threadIdx.x] = reinterpret_cast<LOAD_T*>(data)[thread_rank];
+    for (int32_t i = 0; i < N_buffer; i += blockDim.x) {
+        buffer[i] = reinterpret_cast<LOAD_T*>(data)[N_buffer * blockIdx.x + i];
+    }
     __syncthreads();
     cluster.sync();
 
     LOAD_T *remote_buffer = cluster.map_shared_rank(buffer, cluster.block_rank() ^ 1);
+    float acc = 0.0f;
 
     for (int32_t j = 0; j < N_ITERS; j++) {
-        for (int32_t i = threadIdx.x; i < THREADS_PER_CTA; i += blockDim.x) {
+        for (int32_t i = threadIdx.x; i < N_buffer; i += blockDim.x) {
             acc += dsmem_load<LOAD_T>(remote_buffer + i);
         }
     }
     cluster.sync();
 
-    data[thread_rank] = acc;
+    data[cg::this_grid().thread_rank()] = acc;
 }
 
 
 void benchDistributedSharedMemoryPairThroughput() {
-    int32_t num_ctas = NUM_SMS * CLUSTER_SIZE;
-    size_t data_size = num_ctas * THREADS_PER_CTA * LOAD_SIZE;
+    int32_t num_ctas = 144;
+    size_t data_size = num_ctas * SMEM_SIZE;
     size_t N = data_size / sizeof(float);
     float *data, *d_data;
 
     data = (float*) malloc(data_size);
-    srand((uint32_t) THREADS_PER_CTA + LOAD_SIZE);
+    srand((uint32_t) CLUSTER_SIZE + THREADS_PER_CTA + LOAD_SIZE);
     for (size_t i = 0; i < N; i++) {
         data[i] = rand();
     }
@@ -103,7 +106,7 @@ void benchDistributedSharedMemoryPairThroughput() {
     cudaLaunchConfig_t config = {0};
     config.gridDim = num_ctas;
     config.blockDim = THREADS_PER_CTA;
-    config.dynamicSmemBytes = THREADS_PER_CTA * LOAD_SIZE;
+    config.dynamicSmemBytes = SMEM_SIZE;
     config.attrs = attribute;
     config.numAttrs = 1;
 
