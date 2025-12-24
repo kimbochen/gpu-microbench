@@ -1,14 +1,13 @@
 #!/bin/bash
 
 NCU_BIN=$(which ncu)
+OUTPUT_FILE="dsmem_ring_sweep_results.csv"
 
 CLUSTER_SIZES=(2 4 8)
 THREADS_PER_CTA=(128 256 512 1024)
 LOAD_TYPES=("float" "float2" "float4")
 
-OUTPUT_FILE="dsmem_pair_sweep_results.csv"
-
-echo "Cluster Size,Threads per CTA,Load per Thread (B),Instruction Throughput (instr/s)" > "$OUTPUT_FILE"
+echo "Cluster Size,Threads per CTA,Load per Thread (B),Memory Throughput (GB/s)" > "$OUTPUT_FILE"
 
 # Map LOAD_T to bytes
 get_load_bytes() {
@@ -26,15 +25,16 @@ for cluster_size in "${CLUSTER_SIZES[@]}"; do
             echo "Running: CLUSTER_SIZE=$cluster_size THREADS_PER_CTA=$threads LOAD_T=$load_t ($load_bytes B)"
 
             make clean
-            make dsmem_pair CLUSTER_SIZE="$cluster_size" THREADS_PER_CTA="$threads" LOAD_T="$load_t"
+            make dsmem_ring CLUSTER_SIZE="$cluster_size" THREADS_PER_CTA="$threads" LOAD_T="$load_t"
 
-            INSTR_PER_SEC=$(
-                sudo "$NCU_BIN" --clock-control none --csv --metrics sm__sass_inst_executed_op_dshared_ld.sum.per_second ./dsmem_pair 2>/dev/null \
+            BYTES_PER_SEC=$(
+                sudo "$NCU_BIN" --clock-control none --csv --metrics sm__sass_data_bytes_mem_shared_op_ld.avg.per_second ./dsmem_ring 2>/dev/null \
                 | tail -1 | awk -F'","' '{print $NF}' | tr -d '"'
             )
+            GB_PER_SEC=$(echo "$BYTES_PER_SEC" | awk '{printf "%.4f", $1 / 1e9}')
 
-            echo "DSMEM Instruction Throughput: ${INSTR_PER_SEC} instr/s"
-            echo "${cluster_size},${threads},${load_bytes},${INSTR_PER_SEC}" >> "$OUTPUT_FILE"
+            echo "DSMEM Ring Memory Throughput: ${GB_PER_SEC} GB/s"
+            echo "${cluster_size},${threads},${load_bytes},${GB_PER_SEC}" >> "$OUTPUT_FILE"
         done
     done
 done
